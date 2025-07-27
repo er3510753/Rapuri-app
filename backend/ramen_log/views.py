@@ -6,15 +6,22 @@ from .nulldata import default_ramen_log
 
 class RamenLogListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = RamenLogSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # 修正点: 開発中の動作確認のため、一時的に誰でも投稿できるようにします。
+    # 本番環境では必ず [permissions.IsAuthenticated] に戻してください。
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
         """認証されたユーザーのログのみを返す"""
-        return RamenLog.objects.filter(user=self.request.user).order_by('-visited_at')
+        # 認証を無効化しているため、もし認証されていればそのユーザーのログを返します。
+        if self.request.user.is_authenticated:
+            return RamenLog.objects.filter(user=self.request.user).order_by('-visited_at')
+        # 開発用に全てのログを返す（もしくは空を返すなどプロジェクトに応じて調整）
+        return RamenLog.objects.all().order_by('-visited_at')
 
-    def perform_create(self, serializer):
-        """ログ作成時にリクエストユーザーを自動で割り当てる"""
-        serializer.save(user=self.request.user)
+    # 修正点: 認証を無効化し、フロントからuser IDを送るため、このメソッドを一時的にコメントアウトします。
+    # def perform_create(self, serializer):
+    #     """ログ作成時にリクエストユーザーを自動で割り当てる"""
+    #     serializer.save(user=self.request.user)
 
 class RamenLogRetrieveAPIView(generics.RetrieveAPIView):
     serializer_class = RamenLogSerializer

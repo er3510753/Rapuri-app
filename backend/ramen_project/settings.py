@@ -22,14 +22,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-&!onje14zg_)kdz9sl^d7k=04i1d#^=2va1=*tyf8mtwg33i!v'
+# 本番環境では必ず環境変数から読み込むようにしてください
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-&!onje14zg_)kdz9sl^d7k=04i1d#^=2va1=*tyf8mtwg33i!v')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# 環境変数 'DJANGO_DEBUG' が 'False' でない限り True になります
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True') != 'False'
 
 # Dockerコンテナ間通信のために 'backend' を許可
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'backend']
-
+# DEBUG=False の場合は、本番環境のドメインをここに追加してください
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'backend',
+    '192.168.11.11', # Expo Goからのアクセスを許可
+]
 
 # Application definition
 
@@ -153,7 +160,11 @@ REST_FRAMEWORK = {
 
 # CORS設定 (開発用に全てのオリジンを許可)
 # 本番環境では、許可するオリジンを限定してください
-CORS_ALLOW_ALL_ORIGINS = True
+# if not DEBUG:
+#     CORS_ALLOWED_ORIGINS = [
+#         "https://your-frontend-app.com", # フロントエンドのドメイン
+#     ]
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 # CORS_ALLOW_CREDENTIALS = True # 必要に応じてコメントを外す
 
 # simplejwt の設定

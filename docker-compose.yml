@@ -40,7 +40,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    command: npm run start
+    # 修正点: --tunnel オプションを追加して、Expo Goからアクセスできるようにします。
+    # `npm run start` に引数を渡すために `sh -c "..."` と `--` を使います。
+    command: sh -c "npm run start -- --tunnel"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -50,8 +52,6 @@ services:
       - "8081:8081"
     networks:
       - app_network
-    environment:
-      REACT_APP_API_URL: http://backend:8000
 
 networks:
   app_network:

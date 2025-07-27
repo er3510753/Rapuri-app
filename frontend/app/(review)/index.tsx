@@ -69,10 +69,12 @@ interface ReviewDataForAPI {
   shop_name: string;
   user: number; // ユーザーID
   ordered_item: string;
-  noodle_hardness: string;
-  toppings?: string;
   rating: number;
   visited_at: string; // ISO 8601形式の日時文字列
+  soup_richness?: string;
+  // 備考: 以下のフィールドはバックエンドのモデルに合わせて追加・削除してください
+  noodle_hardness?: string;
+  toppings?: string;
 }
 
 export default function ReviewScreen() {
@@ -104,7 +106,9 @@ export default function ReviewScreen() {
   // ユーザー情報(どっかから取得する)
   const isLoggedIn = true;
   const userInfo = {
-    id: "user_001",
+    // 修正点: バックエンドのUserモデルのID(数値)に合わせてください。例: '1'
+    // `python manage.py shell` で `from users.models import User; User.objects.first().id` などで確認できます。
+    id: "1",
     name: "ラーメン大好き",
     email: "ramen@example.com",
     avatar:
@@ -177,63 +181,54 @@ export default function ReviewScreen() {
 
     setIsSubmitting(true);
     try {
-      // フロントエンド用の完全なレビューデータを作成
       const now = new Date();
-      const reviewData: ReviewData = {
-        restaurantId: restaurantInfo.id,
-        restaurantName: restaurantInfo.name,
-        userId: userInfo.id,
-        userName: userInfo.name,
-        menu: menuName,
-        rating,
-        noodleHardness,
-        soupRichness,
-        review,
-        photo: photoUri,
-        createdAt: now,
-        createdDate: `${now.getFullYear()}年${
-          now.getMonth() + 1
-        }月${now.getDate()}日`, // 日本語形式
-        createdTime: `${now.getHours().toString().padStart(2, "0")}:${now
-          .getMinutes()
-          .toString()
-          .padStart(2, "0")}`, // HH:MM形式
-      };
 
       // バックエンドとのやり取り用のデータを作成
       const apiData: ReviewDataForAPI = {
         shop_name: restaurantInfo.name,
-        user: parseInt(userInfo.id),
+        // 修正点: userはバックエンドで自動的に割り当てるのが理想ですが、
+        // 今回は動作確認のため、フロントから送信します。parseIntの基数を指定します。
+        user: parseInt(userInfo.id, 10),
         ordered_item: menuName,
-        noodle_hardness: noodleHardness,
-        toppings: selectedToppings.join(", "),
-        rating,
+        rating: rating,
         visited_at: now.toISOString(),
+        noodle_hardness: noodleHardness,
+        soup_richness: soupRichness,
+        toppings: selectedToppings.join(", "),
       };
 
       // バックエンドAPIに投稿
-      const response = await fetch(
-        "http://localhost:8000/api/ramen/ramenlog/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            // TODO: 認証トークンを追加
-            // 'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify(apiData),
-        }
-      );
+      // .env ファイルからAPIのURLを読み込むように修正
+      const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/ramen/ramenlog/`;
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // TODO: 認証トークンを追加
+          // 'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(apiData),
+      });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("API Error:", errorData);
-        throw new Error(`API Error: ${response.status}`);
+        // バックエンドからの詳細なエラーメッセージを組み立てる
+        let errorMessage = `APIエラー (ステータス: ${response.status})`;
+        try {
+          const errorData = await response.json();
+          console.error("API Error Data:", errorData);
+          const details = Object.entries(errorData)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+            .join('\n');
+          errorMessage += `\n${details}`;
+        } catch (e) {
+          // JSONのパースに失敗した場合
+          errorMessage += `\nレスポンスの解析に失敗しました。`;
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
       console.log("API Response:", result);
-      console.log("フロントエンド用データ:", reviewData);
       console.log("バックエンド用データ:", apiData);
 
       Alert.alert("成功", "レビューを投稿しました！");
@@ -247,7 +242,7 @@ export default function ReviewScreen() {
       setPhotoUri("");
     } catch (error) {
       console.error("Submit Error:", error);
-      Alert.alert("エラー", "投稿に失敗しました");
+      Alert.alert("投稿エラー", error instanceof Error ? error.message : "不明なエラーが発生しました。");
     } finally {
       setIsSubmitting(false);
     }
