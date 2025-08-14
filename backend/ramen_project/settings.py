@@ -10,33 +10,34 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-import os
 from datetime import timedelta
 from pathlib import Path
+import environ
+
+# django-environの初期化
+env = environ.Env(
+    # 型キャストとデフォルト値を設定
+    DEBUG=(bool, True)
+)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# .envファイルを読み込む
+environ.Env.read_env(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# 本番環境では必ず環境変数から読み込むようにしてください
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-&!onje14zg_)kdz9sl^d7k=04i1d#^=2va1=*tyf8mtwg33i!v')
+SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-&!onje14zg_)kdz9sl^d7k=04i1d#^=2va1=*tyf8mtwg33i!v')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# 環境変数 'DJANGO_DEBUG' が 'False' でない限り True になります
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True') != 'False'
+DEBUG = env('DEBUG')
 
-# Dockerコンテナ間通信のために 'backend' を許可
-# DEBUG=False の場合は、本番環境のドメインをここに追加してください
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'backend',
-    '192.168.11.11', # Expo Goからのアクセスを許可
-]
+# 環境変数から許可するホストのリストを読み込みます。
+# .envファイルではカンマ区切りで指定します (例: ALLOWED_HOSTS=localhost,127.0.0.1,your-domain.com)
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'backend'])
 
 # Application definition
 
@@ -90,17 +91,8 @@ WSGI_APPLICATION = 'ramen_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# PostgreSQL を使用するように設定を変更
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB'),
-        'USER': os.environ.get('POSTGRES_USER'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': 'db',  # docker-compose.yml のサービス名
-        'PORT': '5432',
-    }
-}
+# DATABASE_URLからデータベース設定を読み込む
+DATABASES = {'default': env.db('DATABASE_URL')}
 
 
 # Password validation
@@ -125,9 +117,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ja'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Tokyo'
 
 USE_I18N = True
 
@@ -158,14 +150,12 @@ REST_FRAMEWORK = {
     # ),
 }
 
-# CORS設定 (開発用に全てのオリジンを許可)
-# 本番環境では、許可するオリジンを限定してください
-# if not DEBUG:
-#     CORS_ALLOWED_ORIGINS = [
-#         "https://your-frontend-app.com", # フロントエンドのドメイン
-#     ]
-CORS_ALLOW_ALL_ORIGINS = DEBUG
-# CORS_ALLOW_CREDENTIALS = True # 必要に応じてコメントを外す
+# CORS設定
+# 本番環境では、フロントエンドのオリジンを環境変数で指定します。
+# .envファイルではカンマ区切りで指定します (例: CORS_ALLOWED_ORIGINS=https://your-frontend.com,http://localhost:3000)
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+CORS_ALLOW_ALL_ORIGINS = False # より安全な設定にするため、Falseに固定します。
+CORS_ALLOW_CREDENTIALS = True # フロントエンドから認証情報(CookieやAuthorizationヘッダー)を送信する場合に必要です。
 
 # simplejwt の設定
 SIMPLE_JWT = {

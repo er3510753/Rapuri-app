@@ -1,9 +1,9 @@
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { SymbolWeight, SymbolViewProps } from "expo-symbols";
+import { SymbolView, SymbolWeight, SymbolViewProps } from "expo-symbols";
 import { ComponentProps } from "react";
-import { OpaqueColorValue, type StyleProp, type TextStyle } from "react-native";
+import { OpaqueColorValue, Platform, type StyleProp, type TextStyle } from "react-native";
 
 type IconMapping = Record<
   SymbolViewProps["name"],
@@ -35,6 +35,7 @@ export function IconSymbol({
   name,
   size = 24,
   color,
+  weight,
   style,
 }: {
   name: IconSymbolName;
@@ -43,6 +44,19 @@ export function IconSymbol({
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
+  // iOSではネイティブのSF Symbolsを使用
+  if (Platform.OS === "ios") {
+    return (
+      <SymbolView
+        name={name}
+        size={size}
+        tintColor={color}
+        weight={weight}
+        style={style}
+      />
+    );
+  }
+  // AndroidとWebではMaterialIconsにフォールバック
   return (
     <MaterialIcons
       color={color}

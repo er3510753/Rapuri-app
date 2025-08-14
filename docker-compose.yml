@@ -4,17 +4,17 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
-    command: python manage.py runserver 0.0.0.0:8000
+    # Gunicornを起動するようにコマンドを変更
+    command: /app/.venv/bin/gunicorn ramen_project.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - ./backend:/app
     ports:
       - "8000:8000"
     env_file:
-      - .env.dev
+      - ./backend/.env # 参照先をbackend/.envに統一
     depends_on:
       db:
-        condition: service_healthy # <-- ここを修正
+        condition: service_healthy
     networks:
       - app_network
 
@@ -24,7 +24,7 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     env_file:
-      - .env.dev
+      - ./backend/.env
     networks:
       - app_network
     healthcheck: # <-- このヘルスチェックを追加！
@@ -32,26 +32,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 10s # 起動後10秒はチェックを待つ
-
-  # React Native フロントエンドサービス
-  frontend:
-    # ... frontend サービスの設定は省略 (変更なし)
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    # 修正点: --tunnel オプションを追加して、Expo Goからアクセスできるようにします。
-    # `npm run start` に引数を渡すために `sh -c "..."` と `--` を使います。
-    command: sh -c "npm run start -- --tunnel"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "19000:19000"
-      - "19001:19001"
-      - "8081:8081"
-    networks:
-      - app_network
+      start_period: 10s
 
 networks:
   app_network:
