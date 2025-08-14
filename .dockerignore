@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Docker
+.dockerignore
+
+# IDE settings
+.idea
+.vscode
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Poetry virtual environment
+.venv
+
+# Node.js dependencies
+node_modules/
+
+# Expo cache
+.expo/
+
+# macOS
+.DS_Store

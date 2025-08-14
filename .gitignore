@@ -50,3 +50,6 @@ backend/__pycache__/
 backend/*.pyc
 backend/staticfiles/
 backend/media/
+
+# Frontend specific
+frontend/.env

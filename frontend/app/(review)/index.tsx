@@ -23,6 +23,7 @@ import {
 } from "react-native-paper";
 import { useLocalSearchParams, router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import apiClient from "@/lib/api"; // apiClientをインポート
 import { Image } from "expo-image";
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -197,25 +198,15 @@ export default function ReviewScreen() {
         toppings: selectedToppings.join(", "),
       };
 
-      // バックエンドAPIに投稿
-      // .env ファイルからAPIのURLを読み込むように修正
-      const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/ramen/ramenlog/`;
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // TODO: 認証トークンを追加
-          // 'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(apiData),
-      });
+      // apiClientを使ってAPIに投稿
+      const response = await apiClient.post("/ramen/ramenlog/", apiData);
 
-      if (!response.ok) {
+      if (response.status !== 201) {
         // バックエンドからの詳細なエラーメッセージを組み立てる
         let errorMessage = `APIエラー (ステータス: ${response.status})`;
         try {
-          const errorData = await response.json();
-          console.error("API Error Data:", errorData);
+          const errorData = response.data; // axiosでは .data でアクセス
+          console.error("API Error Data:", errorData); 
           const details = Object.entries(errorData)
             .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
             .join('\n');
@@ -227,7 +218,7 @@ export default function ReviewScreen() {
         throw new Error(errorMessage);
       }
 
-      const result = await response.json();
+      const result = response.data; // axiosでは .data でアクセス
       console.log("API Response:", result);
       console.log("バックエンド用データ:", apiData);
 
