@@ -4,10 +4,13 @@ services:
   backend:
     build:
       context: ./backend
-    # Gunicornを起動するようにコマンドを変更
-    command: /app/.venv/bin/gunicorn ramen_project.wsgi:application --bind 0.0.0.0:8000
+    # 開発用にリロードを有効にし、Gunicornを起動
+    command: /app/.venv/bin/gunicorn ramen_project.wsgi:application --bind 0.0.0.0:8000 --reload
     volumes:
+      # ローカルのソースコードをコンテナにマウント
       - ./backend:/app
+      # .venvディレクトリが上書きされないように、匿名ボリュームとしてマウント
+      - /app/.venv
     ports:
       - "8000:8000"
     env_file:
@@ -34,9 +37,29 @@ services:
       retries: 5
       start_period: 10s
 
-networks:
-  app_network:
-    driver: bridge
+  # React Native (Expo) フロントエンドサービス
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      - CI=1 # インタラクティブなプロンプトを無効化
+    # Expo Goからアクセスできるように --tunnel オプションを追加
+    # `npm start` は package.json の "start": "expo start" を実行します
+    command: npm start -- --tunnel
+    volumes:
+      - ./frontend:/app
+      # ホストのnode_modulesで上書きしないようにする
+      - /app/node_modules
+    ports:
+      - "8081:8081"
+      # Expo DevTools
+      - "19000:19000"
+    networks:
+      - app_network
 
 volumes:
   pg_data:
+
+networks:
+  app_network:
+    driver: bridge

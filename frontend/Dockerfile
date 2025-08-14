@@ -1,21 +1,22 @@
-# Node.jsベースイメージ
-FROM node:24-alpine
+# Node.jsのLTSバージョンをベースイメージとして使用
+FROM node:18-alpine
 
 # 作業ディレクトリを設定
 WORKDIR /app
 
-# package.jsonとyarn.lock/package-lock.jsonをコピー
-COPY package.json yarn.lock* ./
+# 依存関係ファイルを先にコピーしてキャッシュを活用
+COPY package.json package-lock.json ./
 
 # 依存関係をインストール
-RUN npm install
+# `npm ci` は package-lock.json から依存関係をインストールするため、より高速で確実です。
+RUN npm ci
 
-# アプリケーションコードをコピー
+# プロジェクトのソースコードをコピー
 COPY . .
 
-# Expo Metro Bundlerのポートを公開
-EXPOSE 19000
-EXPOSE 19001
+# Expoが使用するポートを公開
+# 8081: Metro Bundler
 EXPOSE 8081
 
-# コマンドはdocker-compose.ymlで指定
+# アプリケーションを起動
+CMD ["npm", "start"]
