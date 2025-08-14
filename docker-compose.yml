@@ -1,56 +1,42 @@
-version: '3.8'
 
 services:
   # Django バックエンドサービス
   backend:
     build:
-      context: ./backend # backendディレクトリのDockerfileを使用
-      dockerfile: Dockerfile
-    command: python manage.py runserver 0.0.0.0:8000 # Djangoサーバーを起動
+      context: ./backend
+    # Gunicornを起動するようにコマンドを変更
+    command: /app/.venv/bin/gunicorn ramen_project.wsgi:application --bind 0.0.0.0:8000
     volumes:
-      - ./backend:/app # ホストのbackendディレクトリをコンテナの/appにマウント
+      - ./backend:/app
     ports:
-      - "8000:8000" # ホストの8000番ポートをコンテナの8000番ポートにマッピング
+      - "8000:8000"
     env_file:
-      - .env.dev # 環境変数を設定
+      - ./backend/.env # 参照先をbackend/.envに統一
     depends_on:
-      - db # dbサービスが起動してからbackendサービスを起動
+      db:
+        condition: service_healthy
     networks:
       - app_network
 
   # PostgreSQL データベースサービス
   db:
-    image: postgres:13 # PostgreSQLの公式イメージを使用
+    image: postgres:13
     volumes:
-      - pg_data:/var/lib/postgresql/data # 永続化のためのボリューム
+      - pg_data:/var/lib/postgresql/data
     env_file:
-      - .env.dev # データベースの認証情報などを設定
+      - ./backend/.env
     networks:
       - app_network
-
-  # React Native フロントエンドサービス
-  frontend:
-    build:
-      context: ./frontend # frontendディレクトリのDockerfileを使用
-      dockerfile: Dockerfile
-    command: npm run start
-    volumes:
-      - ./frontend:/app # ホストのfrontendディレクトリをコンテナの/appにマウント
-      - /app/node_modules # node_modulesはホストからマウントしない（コンテナ内でインストール）
-    ports:
-      - "19000:19000" # Expo Go用のポート
-      - "19001:19001" # Expo Go用のポート (開発サーバーのWeb UIなど)
-      - "8081:8081"
-    networks:
-      - app_network
-    environment:
-      # React NativeからDjangoバックエンドにアクセスするためのURL
-      # Docker内部ではサービス名で解決できる
-      REACT_APP_API_URL: http://backend:8000
+    healthcheck: # <-- このヘルスチェックを追加！
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 networks:
   app_network:
     driver: bridge
 
 volumes:
-  pg_data: # PostgreSQLのデータを永続化するためのボリューム
+  pg_data:
